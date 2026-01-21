@@ -12,14 +12,14 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project = "Month One Assessment"
+      Project = "Starttech Infrastructure"
     }
   }
 }
 
 module "frontend" {
   source      = "./modules/storage"
-  bucket_name = "starttech-frontend"
-  oac_name    = "starttech-oac"
-  tags        = { Name = "Starttech Frontend" }
+  bucket_name = "${var.name}-frontend"
+  oac_name    = "${var.name}-oac"
+  name        = var.name
 }
