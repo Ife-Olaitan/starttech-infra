@@ -1,7 +1,10 @@
 # S3 Bucket
 resource "aws_s3_bucket" "starttech_bucket" {
   bucket = var.bucket_name
-  tags   = var.tags
+
+  tags = {
+    Name = "${var.name}-s3-bucket"
+  }
 }
 
 # Bucket Policy Doc
@@ -81,5 +84,7 @@ resource "aws_cloudfront_distribution" "starttech_distribution" {
     cloudfront_default_certificate = true
   }
 
-  tags = var.tags
+  tags = {
+    Name = "${var.name}-frontend-distribution"
+  }
 }
