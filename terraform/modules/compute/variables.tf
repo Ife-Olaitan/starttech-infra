@@ -33,7 +33,7 @@ variable "min_size" {
 variable "max_size" {
   description = "Maximum number of instances in Auto Scaling Group"
   type        = number
-  default     = 4
+  default     = 2
 }
 
 variable "desired_capacity" {
@@ -45,4 +45,15 @@ variable "desired_capacity" {
 variable "private_subnet_ids" {
   description = "List of private subnet IDs for backend instances"
   type        = list(string)
+}
+
+variable "log_group_name" {
+  description = "CloudWatch Log Group name for backend logs"
+  type        = string
+}
+
+variable "node_type" {
+  description = "ElastiCache node type"
+  type        = string
+  default     = "cache.t3.micro"
 }

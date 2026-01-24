@@ -29,12 +29,46 @@ resource "aws_launch_template" "main" {
     name = aws_iam_instance_profile.backend_server.name
   }
 
-  # user_data = base64encode(<<-EOF
-  #     #!/bin/bash
-  #     # Install Docker, pull image, run app
-  #     # This runs when instance launches
-  #   EOF
-  #   )
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    set -e
+
+    # Create log directory
+    mkdir -p /var/log/backend
+    chmod 755 /var/log/backend
+
+    # Install CloudWatch Agent
+    wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+    dpkg -i amazon-cloudwatch-agent.deb
+
+    # Configure CloudWatch Agent
+    cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CONFIG'
+    {
+      "logs": {
+        "logs_collected": {
+          "files": {
+            "collect_list": [
+              {
+                "file_path": "/var/log/backend/app.log",
+                "log_group_name": "${var.log_group_name}",
+                "log_stream_name": "{instance_id}"
+              }
+            ]
+          }
+        }
+      }
+    }
+    CONFIG
+
+    # Start CloudWatch Agent
+    /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+      -a fetch-config \
+      -m ec2 \
+      -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+      -s
+
+  EOF
+  )
 
   tags = {
     Name = "${var.name}-lt"
@@ -60,6 +94,56 @@ resource "aws_autoscaling_group" "main" {
     key                 = "Name"
     value               = "${var.name}-backend"
     propagate_at_launch = true
+  }
+}
+
+# Scale up when CPU > 70%
+resource "aws_autoscaling_policy" "scale_up" {
+  name                   = "${var.name}-scale-up"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.main.name
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = "${var.name}-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 70
+  alarm_actions       = [aws_autoscaling_policy.scale_up.arn]
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.main.name
+  }
+}
+
+# Scale down when CPU < 30%
+resource "aws_autoscaling_policy" "scale_down" {
+  name                   = "${var.name}-scale-down"
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.main.name
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name          = "${var.name}-cpu-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 30
+  alarm_actions       = [aws_autoscaling_policy.scale_down.arn]
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.main.name
   }
 }
 
@@ -134,6 +218,32 @@ resource "aws_security_group" "backend" {
   }
 }
 
+# Redis SG
+resource "aws_security_group" "redis" {
+  name        = "${var.name}-redis-sg"
+  description = "Security group for Redis"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "Redis from backend"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.name}-redis-sg"
+  }
+}
+
 # ALB
 resource "aws_lb" "main" {
   name               = "${var.name}-alb"
@@ -181,7 +291,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# IAM Role - Identity for EC2
+# IAM Role for EC2 to access Cloudwatch
 resource "aws_iam_role" "backend_server" {
   name = "${var.name}-backend-server-role"
 
@@ -197,7 +307,7 @@ resource "aws_iam_role" "backend_server" {
   })
 }
 
-# Policy attachment - What EC2 can do
+# Policy attachment
 resource "aws_iam_role_policy_attachment" "cloudwatch" {
   role       = aws_iam_role.backend_server.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
@@ -208,3 +318,27 @@ resource "aws_iam_instance_profile" "backend_server" {
   name = "${var.name}-backend-server-profile"
   role = aws_iam_role.backend_server.name
 }
+
+# Redis Subnet
+resource "aws_elasticache_subnet_group" "redis" {
+  name       = "${var.name}-redis-subnet-group"
+  subnet_ids = var.private_subnet_ids
+}
+
+# Redis Replication Group
+resource "aws_elasticache_replication_group" "redis" {
+  replication_group_id       = "${var.name}-redis"
+  description                = "Redis for sessions and caching"
+  node_type                  = var.node_type
+  num_cache_clusters         = 2
+  port                       = 6379
+  subnet_group_name          = aws_elasticache_subnet_group.redis.name
+  security_group_ids         = [aws_security_group.redis.id]
+  automatic_failover_enabled = true
+  multi_az_enabled           = true
+
+  tags = {
+    Name = "${var.name}-redis"
+  }
+}
+
