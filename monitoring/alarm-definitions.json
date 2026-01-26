@@ -1,0 +1,28 @@
+{
+  "alarms": [
+    {
+      "name": "starttech-cpu-high",
+      "description": "Triggers scale up when CPU > 70%",
+      "metric": "CPUUtilization",
+      "namespace": "AWS/EC2",
+      "threshold": 70,
+      "comparison": "GreaterThanThreshold",
+      "evaluation_periods": 2,
+      "period_seconds": 120,
+      "statistic": "Average",
+      "action": "Scale up ASG by 1 instance"
+    },
+    {
+      "name": "starttech-cpu-low",
+      "description": "Triggers scale down when CPU < 30%",
+      "metric": "CPUUtilization",
+      "namespace": "AWS/EC2",
+      "threshold": 30,
+      "comparison": "LessThanThreshold",
+      "evaluation_periods": 2,
+      "period_seconds": 120,
+      "statistic": "Average",
+      "action": "Scale down ASG by 1 instance"
+    }
+  ]
+}

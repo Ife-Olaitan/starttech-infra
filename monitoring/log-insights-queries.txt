@@ -1,0 +1,58 @@
+# ===========================================
+# CloudWatch Logs Insights Queries
+# Log Group: /app/starttech/backend
+# ===========================================
+
+# Find all ERROR logs in the last hour
+fields @timestamp, @message
+| filter @message like /ERROR/
+| sort @timestamp desc
+| limit 100
+
+# Find all requests with response time > 1 second
+fields @timestamp, @message
+| filter @message like /response_time/
+| parse @message "response_time=*ms" as response_time
+| filter response_time > 1000
+| sort @timestamp desc
+| limit 50
+
+# Count errors by type
+fields @timestamp, @message
+| filter @message like /ERROR/
+| parse @message "ERROR: *" as error_type
+| stats count(*) by error_type
+
+# Request count by endpoint
+fields @timestamp, @message
+| filter @message like /request/
+| parse @message 'endpoint="*"' as endpoint
+| stats count(*) by endpoint
+| sort count desc
+
+# Find failed database connections
+fields @timestamp, @message
+| filter @message like /database/ or @message like /mongo/ or @message like /connection failed/
+| sort @timestamp desc
+| limit 50
+
+# Find slow Redis operations
+fields @timestamp, @message
+| filter @message like /redis/
+| parse @message "duration=*ms" as duration
+| filter duration > 100
+| sort @timestamp desc
+| limit 50
+
+# HTTP 5xx errors
+fields @timestamp, @message
+| filter @message like /status=5/
+| sort @timestamp desc
+| limit 100
+
+# Unique users/IPs in last hour
+fields @timestamp, @message
+| parse @message 'ip="*"' as client_ip
+| stats count(*) by client_ip
+| sort count desc
+| limit 20
