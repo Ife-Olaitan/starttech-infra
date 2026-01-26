@@ -37,6 +37,23 @@ resource "aws_launch_template" "main" {
     mkdir -p /var/log/backend
     chmod 755 /var/log/backend
 
+    # Install Docker
+    apt-get update
+    apt-get install -y docker.io
+    systemctl start docker
+    systemctl enable docker
+
+    # Pull and run the backend container from Docker Hub
+    docker pull ${var.dockerhub_image}:latest
+    docker run -d \
+      --name backend \
+      --restart always \
+      -p ${var.app_port}:${var.app_port} \
+      -v /var/log/backend:/var/log/backend \
+      -e REDIS_HOST="${aws_elasticache_replication_group.redis.primary_endpoint_address}" \
+      -e REDIS_PORT="6379" \
+      ${var.dockerhub_image}:latest
+
     # Install CloudWatch Agent
     wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
     dpkg -i amazon-cloudwatch-agent.deb
@@ -67,6 +84,7 @@ resource "aws_launch_template" "main" {
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
       -s
 
+  EOF
   EOF
   )
 

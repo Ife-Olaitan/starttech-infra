@@ -57,3 +57,8 @@ variable "node_type" {
   type        = string
   default     = "cache.t3.micro"
 }
+
+variable "dockerhub_image" {
+  description = "Docker Hub image name"
+  type        = string
+}
