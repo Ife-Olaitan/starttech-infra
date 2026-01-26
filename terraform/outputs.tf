@@ -46,3 +46,24 @@ output "sns_topic_arn" {
   description = "SNS topic ARN for alerts"
   value       = module.monitoring.sns_topic_arn
 }
+
+# GitHub Actions
+output "github_actions_role_arn" {
+  description = "ARN of the GitHub Actions role for frontend deployment"
+  value       = aws_iam_role.github_actions_frontend.arn
+}
+
+output "github_actions_backend_role_arn" {
+  description = "ARN of the GitHub Actions role for backend deployment"
+  value       = aws_iam_role.github_actions_backend.arn
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID for cache invalidation"
+  value       = module.storage.cloudfront_distribution_id
+}
+
+output "asg_name" {
+  description = "Auto Scaling Group name"
+  value       = module.compute.asg_name
+}
