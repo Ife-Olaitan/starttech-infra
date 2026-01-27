@@ -25,3 +25,13 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "github_oidc_provider_arn" {
+  description = "ARN of the GitHub OIDC provider"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "GitHub repository in format 'owner/repo-name'"
+  type        = string
+}

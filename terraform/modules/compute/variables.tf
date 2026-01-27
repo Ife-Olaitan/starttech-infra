@@ -62,3 +62,25 @@ variable "dockerhub_image" {
   description = "Docker Hub image name"
   type        = string
 }
+
+variable "mongo_uri" {
+  description = "MongoDB Atlas connection string"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "JWT secret key"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_oidc_provider_arn" {
+  description = "ARN of the GitHub OIDC provider"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "GitHub repository in format 'owner/repo-name'"
+  type        = string
+}

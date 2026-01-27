@@ -88,3 +88,56 @@ resource "aws_cloudfront_distribution" "starttech_distribution" {
     Name = "${var.name}-frontend-distribution"
   }
 }
+
+# IAM Role for GitHub Actions Frontend Deploy
+resource "aws_iam_role" "github_actions_frontend" {
+  name = "${var.name}-github-actions-frontend"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = var.github_oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+        }
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*"
+        }
+      }
+    }]
+  })
+}
+
+# Policy for S3 and CloudFront access
+resource "aws_iam_role_policy" "github_actions_frontend" {
+  name = "frontend-deploy-policy"
+  role = aws_iam_role.github_actions_frontend.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.starttech_bucket.arn,
+          "${aws_s3_bucket.starttech_bucket.arn}/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = "cloudfront:CreateInvalidation"
+        Resource = "*"
+      }
+    ]
+  })
+}

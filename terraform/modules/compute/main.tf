@@ -43,15 +43,22 @@ resource "aws_launch_template" "main" {
     systemctl start docker
     systemctl enable docker
 
-    # Pull and run the backend container from Docker Hub
+    # Pull and run the backend container
     docker pull ${var.dockerhub_image}:latest
     docker run -d \
       --name backend \
       --restart always \
       -p ${var.app_port}:${var.app_port} \
       -v /var/log/backend:/var/log/backend \
-      -e REDIS_HOST="${aws_elasticache_replication_group.redis.primary_endpoint_address}" \
-      -e REDIS_PORT="6379" \
+      -e PORT="${var.app_port}" \
+      -e LOG_LEVEL="INFO" \
+      -e LOG_FORMAT="json" \
+      -e JWT_EXPIRATION_HOURS="72" \
+      -e DB_NAME="much_todo_db" \
+      -e MONGO_URI="${var.mongo_uri}" \
+      -e JWT_SECRET_KEY="${var.jwt_secret}" \
+      -e ENABLE_CACHE="true" \
+      -e REDIS_ADDR="${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" \
       ${var.dockerhub_image}:latest
 
     # Install CloudWatch Agent
@@ -84,7 +91,6 @@ resource "aws_launch_template" "main" {
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
       -s
 
-  EOF
   EOF
   )
 
@@ -358,5 +364,50 @@ resource "aws_elasticache_replication_group" "redis" {
   tags = {
     Name = "${var.name}-redis"
   }
+}
+
+# IAM Role for GitHub Actions Backend Deploy
+resource "aws_iam_role" "github_actions_backend" {
+  name = "${var.name}-github-actions-backend"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = var.github_oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+        }
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*"
+        }
+      }
+    }]
+  })
+}
+
+# Policy for ASG rolling update
+resource "aws_iam_role_policy" "github_actions_backend" {
+  name = "backend-deploy-policy"
+  role = aws_iam_role.github_actions_backend.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:StartInstanceRefresh",
+          "autoscaling:DescribeInstanceRefreshes",
+          "autoscaling:DescribeAutoScalingGroups"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 

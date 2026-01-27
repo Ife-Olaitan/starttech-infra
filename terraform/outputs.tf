@@ -25,6 +25,12 @@ output "frontend_bucket_name" {
   value       = module.storage.bucket_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID for cache invalidation"
+  value       = module.storage.cloudfront_distribution_id
+}
+
+
 # Compute (Backend)
 output "alb_dns_name" {
   description = "DNS name of the Application Load Balancer"
@@ -34,6 +40,11 @@ output "alb_dns_name" {
 output "redis_endpoint" {
   description = "Redis primary endpoint"
   value       = module.compute.redis_endpoint
+}
+
+output "asg_name" {
+  description = "Auto Scaling Group name"
+  value       = module.compute.asg_name
 }
 
 # Monitoring
@@ -47,23 +58,13 @@ output "sns_topic_arn" {
   value       = module.monitoring.sns_topic_arn
 }
 
-# GitHub Actions
-output "github_actions_role_arn" {
+# Github OIDC
+output "github_actions_frontend_role_arn" {
   description = "ARN of the GitHub Actions role for frontend deployment"
-  value       = aws_iam_role.github_actions_frontend.arn
+  value       = module.storage.github_actions_role_arn
 }
 
 output "github_actions_backend_role_arn" {
   description = "ARN of the GitHub Actions role for backend deployment"
-  value       = aws_iam_role.github_actions_backend.arn
-}
-
-output "cloudfront_distribution_id" {
-  description = "CloudFront distribution ID for cache invalidation"
-  value       = module.storage.cloudfront_distribution_id
-}
-
-output "asg_name" {
-  description = "Auto Scaling Group name"
-  value       = module.compute.asg_name
+  value       = module.compute.github_actions_role_arn
 }
