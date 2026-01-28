@@ -19,10 +19,10 @@ provider "aws" {
 
 module "storage" {
   source                   = "./modules/storage"
-  bucket_name              = "${var.name}-frontend"
+  bucket_name              = "${var.name}-frontend-buc"
   oac_name                 = "${var.name}-oac"
   name                     = var.name
-  github_oidc_provider_arn = module.storage.github_actions_role_arn
+  github_oidc_provider_arn = aws_iam_openid_connect_provider.github.arn
   github_repo              = var.github_repo
 }
 
@@ -45,7 +45,7 @@ module "compute" {
   dockerhub_image          = var.dockerhub_image
   jwt_secret               = var.jwt_secret
   mongo_uri                = var.mongo_uri
-  github_oidc_provider_arn = module.compute.github_actions_role_arn
+  github_oidc_provider_arn = aws_iam_openid_connect_provider.github.arn
   github_repo              = var.github_repo
 }
 

@@ -30,68 +30,85 @@ resource "aws_launch_template" "main" {
   }
 
   user_data = base64encode(<<-EOF
-    #!/bin/bash
-    set -e
+#!/bin/bash
+exec > >(tee /var/log/user-data.log) 2>&1
+set -ex
 
-    # Create log directory
-    mkdir -p /var/log/backend
-    chmod 755 /var/log/backend
+echo "Starting user data script..."
 
-    # Install Docker
-    apt-get update
-    apt-get install -y docker.io
-    systemctl start docker
-    systemctl enable docker
+# Create log directory
+mkdir -p /var/log/backend
+chmod 755 /var/log/backend
 
-    # Pull and run the backend container
-    docker pull ${var.dockerhub_image}:latest
-    docker run -d \
-      --name backend \
-      --restart always \
-      -p ${var.app_port}:${var.app_port} \
-      -v /var/log/backend:/var/log/backend \
-      -e PORT="${var.app_port}" \
-      -e LOG_LEVEL="INFO" \
-      -e LOG_FORMAT="json" \
-      -e JWT_EXPIRATION_HOURS="72" \
-      -e DB_NAME="much_todo_db" \
-      -e MONGO_URI="${var.mongo_uri}" \
-      -e JWT_SECRET_KEY="${var.jwt_secret}" \
-      -e ENABLE_CACHE="true" \
-      -e REDIS_ADDR="${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" \
-      ${var.dockerhub_image}:latest
+# Install Docker
+echo "Installing Docker..."
+apt-get update
+apt-get install -y docker.io
+systemctl start docker
+systemctl enable docker
+echo "Docker installed successfully"
 
-    # Install CloudWatch Agent
-    wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-    dpkg -i amazon-cloudwatch-agent.deb
+# Create .env file for Viper config
+echo "Creating .env file..."
+mkdir -p /opt/backend
+cat > /opt/backend/.env <<ENVFILE
+PORT=${var.app_port}
+LOG_LEVEL=INFO
+LOG_FORMAT=json
+JWT_EXPIRATION_HOURS=72
+DB_NAME=much_todo_db
+MONGO_URI=${var.mongo_uri}
+JWT_SECRET_KEY=${var.jwt_secret}
+ENABLE_CACHE=true
+REDIS_ADDR=${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379
+ENVFILE
+echo ".env file created"
 
-    # Configure CloudWatch Agent
-    cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CONFIG'
-    {
-      "logs": {
-        "logs_collected": {
-          "files": {
-            "collect_list": [
-              {
-                "file_path": "/var/log/backend/app.log",
-                "log_group_name": "${var.log_group_name}",
-                "log_stream_name": "{instance_id}"
-              }
-            ]
+# Pull and run the backend container
+echo "Pulling and running Docker container..."
+docker pull ${var.dockerhub_image}:latest
+docker run -d \
+  --name backend \
+  --restart always \
+  -p ${var.app_port}:${var.app_port} \
+  -v /var/log/backend:/var/log/backend \
+  -v /opt/backend/.env:/app/.env:ro \
+  ${var.dockerhub_image}:latest
+echo "Container started"
+
+# Install CloudWatch Agent
+echo "Installing CloudWatch Agent..."
+wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+dpkg -i amazon-cloudwatch-agent.deb
+
+# Configure CloudWatch Agent
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<CWCONFIG
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/backend/app.log",
+            "log_group_name": "${var.log_group_name}",
+            "log_stream_name": "{instance_id}"
           }
-        }
+        ]
       }
     }
-    CONFIG
+  }
+}
+CWCONFIG
 
-    # Start CloudWatch Agent
-    /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-      -a fetch-config \
-      -m ec2 \
-      -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
-      -s
+# Start CloudWatch Agent
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config \
+  -m ec2 \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+  -s
 
-  EOF
+echo "User data script completed successfully"
+EOF
   )
 
   tags = {
@@ -101,13 +118,14 @@ resource "aws_launch_template" "main" {
 
 # ASG
 resource "aws_autoscaling_group" "main" {
-  name                = "${var.name}-asg"
-  desired_capacity    = var.desired_capacity
-  min_size            = var.min_size
-  max_size            = var.max_size
-  target_group_arns   = [aws_lb_target_group.main.arn]
-  vpc_zone_identifier = var.private_subnet_ids
-  health_check_type   = "ELB"
+  name                      = "${var.name}-asg"
+  desired_capacity          = var.desired_capacity
+  min_size                  = var.min_size
+  max_size                  = var.max_size
+  target_group_arns         = [aws_lb_target_group.main.arn]
+  vpc_zone_identifier       = var.private_subnet_ids
+  health_check_type         = "ELB"
+  health_check_grace_period = 300 # Allow 5 minutes for instance bootstrap
 
   launch_template {
     id      = aws_launch_template.main.id
@@ -335,6 +353,12 @@ resource "aws_iam_role" "backend_server" {
 resource "aws_iam_role_policy_attachment" "cloudwatch" {
   role       = aws_iam_role.backend_server.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+# SSM access for debugging
+resource "aws_iam_role_policy_attachment" "ssm" {
+  role       = aws_iam_role.backend_server.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 # Instance Profile - Connects role to EC2
