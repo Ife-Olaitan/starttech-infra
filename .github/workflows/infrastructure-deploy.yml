@@ -13,6 +13,9 @@ jobs:
   terraform:
     name: Terraform
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
 
     steps:
       - name: Checkout code
@@ -32,11 +35,9 @@ jobs:
 
       - name: Terraform Format Check
         run: terraform fmt -check
-        working-directory: terraform
 
       - name: Terraform Init
         run: terraform init
-        working-directory: terraform
 
       - name: Terraform Validate
         run: terraform validate
@@ -44,18 +45,15 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
-        working-directory: terraform
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
-        working-directory: terraform
 
       - name: Set GitHub Secrets in Application Repo
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-        working-directory: terraform
         run: |
         # Get all terraform outputs
           FRONTEND_ROLE_ARN=$(terraform output -raw github_actions_frontend_role_arn)
