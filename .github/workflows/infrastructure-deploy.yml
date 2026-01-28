@@ -55,7 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-        # Get all terraform outputs
+          # Get all terraform outputs
           FRONTEND_ROLE_ARN=$(terraform output -raw github_actions_frontend_role_arn)
           BACKEND_ROLE_ARN=$(terraform output -raw github_actions_backend_role_arn)
           CF_DIST_ID=$(terraform output -raw cloudfront_distribution_id)
