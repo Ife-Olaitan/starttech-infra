@@ -1,0 +1,72 @@
+name: Infrastructure Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  TF_VERSION: "1.7.0"
+  AWS_REGION: "eu-west-2"
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: terraform
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: terraform
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: terraform
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan
+        working-directory: terraform
+
+      - name: Set GitHub Secrets in Application Repo
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        working-directory: terraform
+        run: |
+        # Get all terraform outputs
+          FRONTEND_ROLE_ARN=$(terraform output -raw github_actions_frontend_role_arn)
+          BACKEND_ROLE_ARN=$(terraform output -raw github_actions_backend_role_arn)
+          CF_DIST_ID=$(terraform output -raw cloudfront_distribution_id)
+          ASG_NAME=$(terraform output -raw asg_name)
+          
+          # Set GitHub secrets                                                                                                                                                          
+          gh secret set AWS_ROLE_ARN_FRONTEND --body "$FRONTEND_ROLE_ARN" --repo ife-olaitan/starttech-application
+          gh secret set CLOUDFRONT_DISTRIBUTION_ID --body "$CF_DIST_ID" --repo ife-olaitan/starttech-application
+          gh secret set AWS_ROLE_ARN_BACKEND --body "$BACKEND_ROLE_ARN" --repo ife-olaitan/starttech-application
+          gh secret set ASG_NAME --body "$ASG_NAME" --repo ife-olaitan/starttech-application
+
+
