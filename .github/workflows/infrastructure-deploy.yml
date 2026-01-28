@@ -53,10 +53,32 @@ jobs:
         working-directory: terraform
 
       - name: Terraform Plan
+        env:
+          TF_VAR_name: ${{ secrets.TF_VAR_NAME }}
+          TF_VAR_aws_region: ${{ secrets.TF_VAR_AWS_REGION }}
+          TF_VAR_vpc_cidr: ${{ secrets.TF_VAR_VPC_CIDR }}
+          TF_VAR_public_subnet_cidrs: ${{ secrets.TF_VAR_PUBLIC_SUBNET_CIDRS }}
+          TF_VAR_private_subnet_cidrs: ${{ secrets.TF_VAR_PRIVATE_SUBNET_CIDRS }}
+          TF_VAR_instance_type: ${{ secrets.TF_VAR_INSTANCE_TYPE }}
+          TF_VAR_github_repo: ${{ secrets.TF_VAR_GITHUB_REPO }}
+          TF_VAR_dockerhub_image: ${{ secrets.TF_VAR_DOCKERHUB_IMAGE }}
+          TF_VAR_mongo_uri: ${{ secrets.TF_VAR_MONGO_URI }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
         run: terraform plan -input=false -parallelism=20
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          TF_VAR_name: ${{ secrets.TF_VAR_NAME }}
+          TF_VAR_aws_region: ${{ secrets.TF_VAR_AWS_REGION }}
+          TF_VAR_vpc_cidr: ${{ secrets.TF_VAR_VPC_CIDR }}
+          TF_VAR_public_subnet_cidrs: ${{ secrets.TF_VAR_PUBLIC_SUBNET_CIDRS }}
+          TF_VAR_private_subnet_cidrs: ${{ secrets.TF_VAR_PRIVATE_SUBNET_CIDRS }}
+          TF_VAR_instance_type: ${{ secrets.TF_VAR_INSTANCE_TYPE }}
+          TF_VAR_github_repo: ${{ secrets.TF_VAR_GITHUB_REPO }}
+          TF_VAR_dockerhub_image: ${{ secrets.TF_VAR_DOCKERHUB_IMAGE }}
+          TF_VAR_mongo_uri: ${{ secrets.TF_VAR_MONGO_URI }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
         run: terraform apply -auto-approve -input=false -parallelism=20
 
       - name: Set GitHub Secrets in Application Repo
