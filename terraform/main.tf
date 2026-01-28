@@ -5,6 +5,13 @@ terraform {
       version = "5.99.1"
     }
   }
+
+  backend "s3" {
+    bucket       = "starttech-terraform-state-buc"
+    key          = "terraform.tfstate"
+    region       = "eu-west-2"
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
