@@ -44,11 +44,11 @@ jobs:
         working-directory: terraform
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: terraform plan
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve
 
       - name: Set GitHub Secrets in Application Repo
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
