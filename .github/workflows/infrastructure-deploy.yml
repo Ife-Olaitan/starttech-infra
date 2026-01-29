@@ -1,9 +1,11 @@
 name: Infrastructure Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+
+#  push:
+#    branches:
+#      - main
 
 env:
   TF_VERSION: "1.13.3"
@@ -60,7 +62,6 @@ jobs:
           TF_VAR_public_subnet_cidrs: ${{ secrets.TF_VAR_PUBLIC_SUBNET_CIDRS }}
           TF_VAR_private_subnet_cidrs: ${{ secrets.TF_VAR_PRIVATE_SUBNET_CIDRS }}
           TF_VAR_instance_type: ${{ secrets.TF_VAR_INSTANCE_TYPE }}
-          TF_VAR_github_repo: ${{ secrets.TF_VAR_GITHUB_REPO }}
           TF_VAR_dockerhub_image: ${{ secrets.TF_VAR_DOCKERHUB_IMAGE }}
           TF_VAR_mongo_uri: ${{ secrets.TF_VAR_MONGO_URI }}
           TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
@@ -75,7 +76,6 @@ jobs:
           TF_VAR_public_subnet_cidrs: ${{ secrets.TF_VAR_PUBLIC_SUBNET_CIDRS }}
           TF_VAR_private_subnet_cidrs: ${{ secrets.TF_VAR_PRIVATE_SUBNET_CIDRS }}
           TF_VAR_instance_type: ${{ secrets.TF_VAR_INSTANCE_TYPE }}
-          TF_VAR_github_repo: ${{ secrets.TF_VAR_GITHUB_REPO }}
           TF_VAR_dockerhub_image: ${{ secrets.TF_VAR_DOCKERHUB_IMAGE }}
           TF_VAR_mongo_uri: ${{ secrets.TF_VAR_MONGO_URI }}
           TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
@@ -86,16 +86,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          # Get all terraform outputs
-          FRONTEND_ROLE_ARN=$(terraform output -raw github_actions_frontend_role_arn)
-          BACKEND_ROLE_ARN=$(terraform output -raw github_actions_backend_role_arn)
+          # Get terraform outputs
           CF_DIST_ID=$(terraform output -raw cloudfront_distribution_id)
           ASG_NAME=$(terraform output -raw asg_name)
-          
-          # Set GitHub secrets                                                                                                                                                          
-          gh secret set AWS_ROLE_ARN_FRONTEND --body "$FRONTEND_ROLE_ARN" --repo ife-olaitan/starttech-application
-          gh secret set CLOUDFRONT_DISTRIBUTION_ID --body "$CF_DIST_ID" --repo ife-olaitan/starttech-application
-          gh secret set AWS_ROLE_ARN_BACKEND --body "$BACKEND_ROLE_ARN" --repo ife-olaitan/starttech-application
-          gh secret set ASG_NAME --body "$ASG_NAME" --repo ife-olaitan/starttech-application
+
+          # Set GitHub secrets
+          gh secret set CLOUDFRONT_DISTRIBUTION_ID --body "$CF_DIST_ID" --repo Ife-Olaitan/starttech-application
+          gh secret set ASG_NAME --body "$ASG_NAME" --repo Ife-Olaitan/starttech-application
 
 
