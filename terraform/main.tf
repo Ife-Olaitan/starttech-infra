@@ -25,10 +25,11 @@ provider "aws" {
 }
 
 module "storage" {
-  source      = "./modules/storage"
-  bucket_name = "${var.name}-frontend-buc"
-  oac_name    = "${var.name}-oac"
-  name        = var.name
+  source       = "./modules/storage"
+  bucket_name  = "${var.name}-frontend-buc"
+  oac_name     = "${var.name}-oac"
+  name         = var.name
+  alb_dns_name = module.compute.alb_dns_name
 }
 
 module "networking" {

@@ -1,11 +1,11 @@
 variable "name" {
   description = "Name of application"
-  type = string
+  type        = string
 }
 
 variable "vpc_cidr" {
   description = "CIDR block for VPC"
-  type = string
+  type        = string
 }
 
 variable "public_subnet_cidrs" {

@@ -88,11 +88,11 @@ jobs:
           # Get terraform outputs
           CF_DIST_ID=$(terraform output -raw cloudfront_distribution_id)
           ASG_NAME=$(terraform output -raw asg_name)
-          ALB_DNS=$(terraform output -raw alb_dns_name)
+          API_CF_DOMAIN=$(terraform output -raw api_cloudfront_domain_name)
 
           # Set GitHub secrets
           gh secret set CLOUDFRONT_DISTRIBUTION_ID --body "$CF_DIST_ID" --repo Ife-Olaitan/starttech-application
           gh secret set ASG_NAME --body "$ASG_NAME" --repo Ife-Olaitan/starttech-application
-          gh secret set API_BASE_URL --body "http://$ALB_DNS" --repo Ife-Olaitan/starttech-application
+          gh secret set API_BASE_URL --body "https://$API_CF_DOMAIN" --repo Ife-Olaitan/starttech-application
 
 
