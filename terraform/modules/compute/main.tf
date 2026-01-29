@@ -61,6 +61,7 @@ MONGO_URI=${var.mongo_uri}
 JWT_SECRET_KEY=${var.jwt_secret}
 ENABLE_CACHE=true
 REDIS_ADDR=${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379
+ALLOWED_ORIGINS=*
 ENVFILE
 echo ".env file created"
 
