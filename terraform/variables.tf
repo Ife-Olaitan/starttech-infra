@@ -31,12 +31,6 @@ variable "instance_type" {
   type        = string
 }
 
-# GitHub OIDC
-variable "github_repo" {
-  description = "GitHub repository in format 'owner/repo-name'"
-  type        = string
-}
-
 variable "dockerhub_image" {
   description = "Docker Hub image name"
   type        = string

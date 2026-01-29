@@ -57,14 +57,3 @@ output "sns_topic_arn" {
   description = "SNS topic ARN for alerts"
   value       = module.monitoring.sns_topic_arn
 }
-
-# Github OIDC
-output "github_actions_frontend_role_arn" {
-  description = "ARN of the GitHub Actions role for frontend deployment"
-  value       = module.storage.github_actions_role_arn
-}
-
-output "github_actions_backend_role_arn" {
-  description = "ARN of the GitHub Actions role for backend deployment"
-  value       = module.compute.github_actions_role_arn
-}

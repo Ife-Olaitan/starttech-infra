@@ -47,8 +47,3 @@ output "redis_sg_id" {
   description = "Redis security group ID"
   value       = aws_security_group.redis.id
 }
-
-output "github_actions_role_arn" {
-  description = "ARN of the GitHub Actions role for backend deployment"
-  value       = aws_iam_role.github_actions_backend.arn
-}

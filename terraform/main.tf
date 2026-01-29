@@ -25,12 +25,10 @@ provider "aws" {
 }
 
 module "storage" {
-  source                   = "./modules/storage"
-  bucket_name              = "${var.name}-frontend-buc"
-  oac_name                 = "${var.name}-oac"
-  name                     = var.name
-  github_oidc_provider_arn = aws_iam_openid_connect_provider.github.arn
-  github_repo              = var.github_repo
+  source      = "./modules/storage"
+  bucket_name = "${var.name}-frontend-buc"
+  oac_name    = "${var.name}-oac"
+  name        = var.name
 }
 
 module "networking" {
@@ -42,28 +40,19 @@ module "networking" {
 }
 
 module "compute" {
-  source                   = "./modules/compute"
-  instance_type            = var.instance_type
-  name                     = var.name
-  private_subnet_ids       = module.networking.private_subnet_ids
-  public_subnet_ids        = module.networking.public_subnet_ids
-  vpc_id                   = module.networking.vpc_id
-  log_group_name           = module.monitoring.log_group_name
-  dockerhub_image          = var.dockerhub_image
-  jwt_secret               = var.jwt_secret
-  mongo_uri                = var.mongo_uri
-  github_oidc_provider_arn = aws_iam_openid_connect_provider.github.arn
-  github_repo              = var.github_repo
+  source             = "./modules/compute"
+  instance_type      = var.instance_type
+  name               = var.name
+  private_subnet_ids = module.networking.private_subnet_ids
+  public_subnet_ids  = module.networking.public_subnet_ids
+  vpc_id             = module.networking.vpc_id
+  log_group_name     = module.monitoring.log_group_name
+  dockerhub_image    = var.dockerhub_image
+  jwt_secret         = var.jwt_secret
+  mongo_uri          = var.mongo_uri
 }
 
 module "monitoring" {
   source = "./modules/monitoring"
   name   = var.name
-}
-
-# GitHub OIDC Provider
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }

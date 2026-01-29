@@ -17,8 +17,3 @@ output "cloudfront_domain_name" {
   description = "Domain name of the CloudFront distribution"
   value       = aws_cloudfront_distribution.starttech_distribution.domain_name
 }
-
-output "github_actions_role_arn" {
-  description = "ARN of the GitHub Actions role for frontend deployment"
-  value       = aws_iam_role.github_actions_frontend.arn
-}
