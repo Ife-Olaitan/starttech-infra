@@ -25,11 +25,10 @@ provider "aws" {
 }
 
 module "storage" {
-  source       = "./modules/storage"
-  bucket_name  = "${var.name}-frontend-buc"
-  oac_name     = "${var.name}-oac"
-  name         = var.name
-  alb_dns_name = module.compute.alb_dns_name
+  source      = "./modules/storage"
+  bucket_name = "${var.name}-frontend-buc"
+  oac_name    = "${var.name}-oac"
+  name        = var.name
 }
 
 module "networking" {
@@ -51,6 +50,7 @@ module "compute" {
   dockerhub_image    = var.dockerhub_image
   jwt_secret         = var.jwt_secret
   mongo_uri          = var.mongo_uri
+  allowed_origins    = "https://${module.storage.cloudfront_domain_name}"
 }
 
 module "monitoring" {

@@ -74,3 +74,8 @@ variable "jwt_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "allowed_origins" {
+  description = "Allowed origins for CORS (frontend CloudFront domain)"
+  type        = string
+}

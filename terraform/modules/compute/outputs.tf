@@ -47,3 +47,8 @@ output "redis_sg_id" {
   description = "Redis security group ID"
   value       = aws_security_group.redis.id
 }
+
+output "api_cloudfront_domain_name" {
+  description = "Domain name of the API CloudFront distribution"
+  value       = aws_cloudfront_distribution.api.domain_name
+}

@@ -39,7 +39,7 @@ output "alb_dns_name" {
 
 output "api_cloudfront_domain_name" {
   description = "CloudFront domain name for API (HTTPS)"
-  value       = module.storage.api_cloudfront_domain_name
+  value       = module.compute.api_cloudfront_domain_name
 }
 
 output "redis_endpoint" {

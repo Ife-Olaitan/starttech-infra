@@ -17,8 +17,3 @@ output "cloudfront_domain_name" {
   description = "Domain name of the CloudFront distribution"
   value       = aws_cloudfront_distribution.starttech_distribution.domain_name
 }
-
-output "api_cloudfront_domain_name" {
-  description = "Domain name of the API CloudFront distribution"
-  value       = aws_cloudfront_distribution.api_distribution.domain_name
-}
