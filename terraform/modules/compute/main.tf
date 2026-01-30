@@ -72,9 +72,14 @@ docker run -d \
   --name backend \
   --restart always \
   -p ${var.app_port}:${var.app_port} \
-  -v /var/log/backend:/var/log/backend \
+  --log-driver json-file \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   -v /opt/backend/.env:/app/.env:ro \
   ${var.dockerhub_image}:latest
+
+# Redirect Docker logs to file for CloudWatch
+nohup sh -c 'docker logs -f backend >> /var/log/backend/app.log 2>&1' &
 echo "Container started"
 
 # Install CloudWatch Agent
